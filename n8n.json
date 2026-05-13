@@ -1,0 +1,193 @@
+{
+  "name": "Australe Formation - Sync Digiforma Cache",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Lancer manuellement",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Toutes les 2 heures",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -760,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "digiforma-api-url",
+              "name": "digiformaApiUrl",
+              "value": "https://app.digiforma.com/api/v1/graphql",
+              "type": "string"
+            },
+            {
+              "id": "digiforma-token",
+              "name": "digiformaApiToken",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwNTQ2MTk0MzUsImlhdCI6MTc1ODU0NDcxMiwiaWQiOjM5ODk4LCJpc3MiOiJEaWdpZm9ybWEiLCJqdGkiOiIwMUs1UlBYTUUzMlcyQkFBOTdSNFAzSDFWNiIsIm1vZGUiOiJhcGkiLCJ0eXBlIjoidXNlciJ9.lSo_FeJXnLcK08KFerdihA3QpmZzA3doKiGLOLJ1p54",
+              "type": "string"
+            },
+            {
+              "id": "app-cache-url",
+              "name": "appCacheUrl",
+              "value": "http://localhost:3000/api/cache/digiforma",
+              "type": "string"
+            },
+            {
+              "id": "target-year",
+              "name": "targetYear",
+              "value": 2026,
+              "type": "number"
+            },
+            {
+              "id": "pipeline-state",
+              "name": "pipelineState",
+              "value": "ongoing",
+              "type": "string"
+            },
+            {
+              "id": "only-active",
+              "name": "onlyActive",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "page-size",
+              "name": "pageSize",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "max-pages",
+              "name": "maxPages",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "max-sessions-details",
+              "name": "maxSessionsDetails",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "include-today-slots",
+              "name": "includeTodaySlots",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "post-to-app",
+              "name": "postToApp",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "cache-secret",
+              "name": "cacheSecret",
+              "value": "CHANGE_MOI_SECRET_SIMPLE",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -460,
+        230
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first().json;\n\nconst digiformaApiUrl = config.digiformaApiUrl;\nconst digiformaApiToken = config.digiformaApiToken;\nconst appCacheUrl = config.appCacheUrl;\nconst cacheSecret = config.cacheSecret;\n\nconst targetYear = Number(config.targetYear || 2026);\nconst pipelineState = String(config.pipelineState || 'ongoing');\nconst onlyActive = Boolean(config.onlyActive);\nconst pageSize = Number(config.pageSize || 10);\nconst maxPages = Number(config.maxPages || 20);\nconst maxSessionsDetails = Number(config.maxSessionsDetails || 30);\nconst includeTodaySlots = Boolean(config.includeTodaySlots);\nconst postToApp = Boolean(config.postToApp);\n\nif (!digiformaApiUrl) {\n  throw new Error('digiformaApiUrl manquant dans le node Config.');\n}\n\nif (!digiformaApiToken || digiformaApiToken === 'COLLE_TON_TOKEN_DIGIFORMA_ICI') {\n  throw new Error('digiformaApiToken manquant dans le node Config.');\n}\n\nasync function digiformaGraphQLRequest(query, variables = {}) {\n  const response = await fetch(digiformaApiUrl, {\n    method: 'POST',\n    headers: {\n      Authorization: `Bearer ${digiformaApiToken}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      query,\n      variables\n    })\n  });\n\n  const payload = await response.json();\n\n  if (!response.ok) {\n    const message = Array.isArray(payload.errors)\n      ? payload.errors.map((error) => error.message).join(' | ')\n      : `HTTP ${response.status}`;\n\n    throw new Error(`Erreur Digiforma : ${message}`);\n  }\n\n  if (payload.errors && payload.errors.length > 0) {\n    throw new Error(payload.errors.map((error) => error.message).join(' | '));\n  }\n\n  return payload.data;\n}\n\nasync function fetchTrainingSessionsLight() {\n  const query = `\n    query GetTrainingSessionsLight(\n      $pagination: Pagination,\n      $filters: TrainingSessionFilters\n    ) {\n      trainingSessions(\n        pagination: $pagination,\n        filters: $filters\n      ) {\n        id\n        name\n        code\n        startDate\n        endDate\n        pipelineState\n      }\n    }\n  `;\n\n  const filters = buildTrainingSessionFilters();\n  const allSessions = [];\n\n  for (let page = 1; page <= maxPages; page++) {\n    const data = await digiformaGraphQLRequest(query, {\n      pagination: {\n        page,\n        size: pageSize\n      },\n      filters\n    });\n\n    const sessions = Array.isArray(data.trainingSessions)\n      ? data.trainingSessions\n      : [];\n\n    allSessions.push(...sessions);\n\n    if (sessions.length < pageSize) {\n      break;\n    }\n  }\n\n  return allSessions;\n}\n\nfunction buildTrainingSessionFilters() {\n  return {\n    startedBefore: `${targetYear}-12-31`,\n    endedAfter: `${targetYear}-01-01`\n  };\n}\n\nasync function fetchTrainingSessionDetails(sessionId) {\n  const query = `\n    query GetTrainingSessionDetails($id: ID!) {\n      trainingSession(id: $id) {\n        id\n        name\n        code\n        startDate\n        endDate\n        pipelineState\n        trainingType\n        type\n        timezone\n\n        trainees {\n          id\n          firstname\n          lastname\n          email\n          phone\n          phoneSecondary\n          status\n        }\n\n        trainingSessionSlots {\n          id\n          date\n          startTime\n          endTime\n          slot\n\n          signatures {\n            signature\n            type\n            customerTrainee {\n              id\n              trainee {\n                id\n                firstname\n                lastname\n                email\n                phone\n                phoneSecondary\n              }\n            }\n          }\n\n          customerTrainees {\n            id\n            attendanceProofUrl\n            extranetUrl\n            trainee {\n              id\n              firstname\n              lastname\n              email\n              phone\n              phoneSecondary\n            }\n            signatures {\n              signature\n              type\n              dates {\n                id\n                date\n                startTime\n                endTime\n              }\n            }\n          }\n\n          subsession {\n            id\n            name\n          }\n        }\n      }\n    }\n  `;\n\n  const data = await digiformaGraphQLRequest(query, {\n    id: sessionId\n  });\n\n  return data.trainingSession || null;\n}\n\nfunction isAllowedPipelineState(session) {\n  if (!onlyActive) {\n    return true;\n  }\n\n  if (!pipelineState || pipelineState === 'all') {\n    return true;\n  }\n\n  return String(session.pipelineState || '').toLowerCase() === pipelineState.toLowerCase();\n}\n\nfunction isTargetYearSession(session) {\n  const yearStart = new Date(`${targetYear}-01-01T00:00:00`);\n  const yearEnd = new Date(`${targetYear}-12-31T23:59:59`);\n\n  const startDate = parseDate(session.startDate);\n  const endDate = parseDate(session.endDate);\n\n  if (!startDate && !endDate) {\n    return false;\n  }\n\n  if (startDate && endDate) {\n    return startDate <= yearEnd && endDate >= yearStart;\n  }\n\n  if (startDate && !endDate) {\n    return startDate >= yearStart && startDate <= yearEnd;\n  }\n\n  if (!startDate && endDate) {\n    return endDate >= yearStart && endDate <= yearEnd;\n  }\n\n  return false;\n}\n\nfunction parseDate(value) {\n  if (!value) {\n    return null;\n  }\n\n  const date = new Date(value);\n\n  if (Number.isNaN(date.getTime())) {\n    return null;\n  }\n\n  return date;\n}\n\nfunction buildPlanningResults(sessions) {\n  const results = [];\n\n  sessions.forEach((session) => {\n    const trainees = Array.isArray(session.trainees) ? session.trainees : [];\n    const slots = Array.isArray(session.trainingSessionSlots) ? session.trainingSessionSlots : [];\n\n    trainees.forEach((trainee) => {\n      const traineeSlots = findSlotsForTrainee(trainee, slots);\n      const status = getPlanningStatus({ session, trainee, traineeSlots, sessionSlots: slots });\n\n      results.push({\n        learnerId: trainee.id || '',\n        fullName: buildFullName(trainee.firstname, trainee.lastname),\n        email: trainee.email || '',\n        learnerStatus: trainee.status || '',\n        sessionId: session.id || '',\n        sessionName: session.name || '',\n        sessionCode: session.code || '',\n        sessionStatus: session.pipelineState || '',\n        sessionStartDate: session.startDate || '',\n        sessionEndDate: session.endDate || '',\n        slotsCount: traineeSlots.length,\n        totalSessionSlots: slots.length,\n        status\n      });\n    });\n  });\n\n  return results;\n}\n\nfunction findSlotsForTrainee(trainee, slots) {\n  const traineeId = String(trainee.id || '');\n  const traineeEmail = cleanEmail(trainee.email);\n\n  return slots.filter((slot) => {\n    const customerTrainees = Array.isArray(slot.customerTrainees) ? slot.customerTrainees : [];\n\n    const hasDirectTraineeMatch = customerTrainees.some((customerTrainee) => {\n      const linkedTrainee = customerTrainee.trainee;\n\n      if (!linkedTrainee) {\n        return false;\n      }\n\n      return isSameTrainee(linkedTrainee, traineeId, traineeEmail);\n    });\n\n    if (hasDirectTraineeMatch) {\n      return true;\n    }\n\n    return customerTrainees.length === 0;\n  });\n}\n\nfunction getPlanningStatus({ session, trainee, traineeSlots, sessionSlots }) {\n  if (!session.startDate || !session.endDate) {\n    return {\n      code: 'warning',\n      label: 'Session sans dates complètes',\n      action: 'Vérifier les dates de début et de fin de session dans Digiforma.'\n    };\n  }\n\n  if (!Array.isArray(sessionSlots) || sessionSlots.length === 0) {\n    return {\n      code: 'missing',\n      label: 'Aucun créneau session',\n      action: 'Ajouter des créneaux de formation dans la session Digiforma.'\n    };\n  }\n\n  if (!trainee.email) {\n    return {\n      code: 'warning',\n      label: 'Email apprenant manquant',\n      action: 'Compléter la fiche apprenant dans Digiforma.'\n    };\n  }\n\n  if (traineeSlots.length === 0) {\n    return {\n      code: 'missing',\n      label: 'Planning manquant',\n      action: 'Vérifier l’affectation de l’apprenant aux créneaux, modules ou sous-sessions.'\n    };\n  }\n\n  if (traineeSlots.length < 3) {\n    return {\n      code: 'warning',\n      label: 'Planning possiblement incomplet',\n      action: 'Contrôler que l’apprenant possède bien tous ses créneaux de formation.'\n    };\n  }\n\n  return {\n    code: 'ok',\n    label: 'Planning OK',\n    action: 'Aucune action nécessaire.'\n  };\n}\n\nfunction buildSignatureReminders(sessions) {\n  const reminders = [];\n\n  sessions.forEach((session) => {\n    const sessionTrainees = Array.isArray(session.trainees) ? session.trainees : [];\n    const slots = Array.isArray(session.trainingSessionSlots) ? session.trainingSessionSlots : [];\n\n    slots.forEach((slot) => {\n      if (!isPastSlot(slot)) {\n        return;\n      }\n\n      const concernedTrainees = getConcernedTraineesForSlot(slot, sessionTrainees);\n\n      concernedTrainees.forEach((traineeContext) => {\n        const trainee = traineeContext.trainee;\n        const customerTrainee = traineeContext.customerTrainee;\n\n        if (!trainee) {\n          return;\n        }\n\n        const hasSignature = hasValidSignatureForSlot({ slot, trainee, customerTrainee });\n\n        if (hasSignature) {\n          return;\n        }\n\n        reminders.push(buildReminderItem({ session, slot, trainee, customerTrainee }));\n      });\n    });\n  });\n\n  return sortReminders(removeDuplicateReminders(reminders));\n}\n\nfunction getConcernedTraineesForSlot(slot, sessionTrainees) {\n  const customerTrainees = Array.isArray(slot.customerTrainees) ? slot.customerTrainees : [];\n\n  if (customerTrainees.length > 0) {\n    return customerTrainees\n      .filter((customerTrainee) => customerTrainee && customerTrainee.trainee)\n      .map((customerTrainee) => ({ trainee: customerTrainee.trainee, customerTrainee }));\n  }\n\n  return sessionTrainees.map((trainee) => ({ trainee, customerTrainee: null }));\n}\n\nfunction hasValidSignatureForSlot({ slot, trainee, customerTrainee }) {\n  const slotSignatures = Array.isArray(slot.signatures) ? slot.signatures : [];\n  const customerTraineeSignatures = Array.isArray(customerTrainee?.signatures) ? customerTrainee.signatures : [];\n\n  const traineeId = String(trainee.id || '');\n  const traineeEmail = cleanEmail(trainee.email);\n\n  const hasSlotSignature = slotSignatures.some((signature) => {\n    if (!isSignatureFilled(signature)) {\n      return false;\n    }\n\n    const signatureTrainee = signature.customerTrainee?.trainee;\n\n    if (!signatureTrainee) {\n      return false;\n    }\n\n    return isSameTrainee(signatureTrainee, traineeId, traineeEmail);\n  });\n\n  if (hasSlotSignature) {\n    return true;\n  }\n\n  return customerTraineeSignatures.some((signature) => {\n    if (!isSignatureFilled(signature)) {\n      return false;\n    }\n\n    const dates = Array.isArray(signature.dates) ? signature.dates : [];\n\n    if (dates.length === 0) {\n      return true;\n    }\n\n    return dates.some((dateSlot) => String(dateSlot.id || '') === String(slot.id || ''));\n  });\n}\n\nfunction buildReminderItem({ session, slot, trainee, customerTrainee }) {\n  const slotDate = slot.date || '';\n  const startTime = normalizeTime(slot.startTime);\n  const endTime = normalizeTime(slot.endTime);\n  const daysLate = computeDaysLate(slotDate);\n  const priority = computePriority(daysLate);\n  const fullName = buildFullName(trainee.firstname, trainee.lastname);\n  const firstName = trainee.firstname || '';\n  const sessionName = session.name || 'votre formation';\n  const extranetUrl = customerTrainee?.extranetUrl || '';\n\n  return {\n    id: buildReminderId(session, slot, trainee),\n    priority,\n    daysLate,\n    learnerId: trainee.id || '',\n    fullName,\n    firstName,\n    lastName: trainee.lastname || '',\n    email: trainee.email || '',\n    phone: trainee.phone || trainee.phoneSecondary || '',\n    customerTraineeId: customerTrainee?.id || '',\n    extranetUrl,\n    attendanceProofUrl: customerTrainee?.attendanceProofUrl || '',\n    sessionId: session.id || '',\n    sessionName,\n    sessionCode: session.code || '',\n    sessionStatus: session.pipelineState || '',\n    sessionStartDate: session.startDate || '',\n    sessionEndDate: session.endDate || '',\n    slotId: slot.id || '',\n    slotDate,\n    startTime,\n    endTime,\n    slotLabel: slot.slot || '',\n    subsessionName: slot.subsession?.name || '',\n    status: {\n      code: 'missing_signature',\n      label: 'Émargement non signé',\n      action: 'Relancer l’apprenant pour signature de son émargement Digiforma.'\n    },\n    messages: {\n      email: buildEmailReminderMessage({ firstName, sessionName, slotDate, startTime, endTime, extranetUrl }),\n      whatsapp: buildWhatsappReminderMessage({ firstName, sessionName, slotDate, startTime, endTime, extranetUrl })\n    }\n  };\n}\n\nfunction buildEmailReminderMessage({ firstName, sessionName, slotDate, startTime, endTime, extranetUrl }) {\n  const formattedDate = formatDateFR(slotDate);\n  const linkSentence = extranetUrl ? `\\n\\nLien utile : ${extranetUrl}` : '';\n\n  return [\n    `Bonjour ${firstName || ''},`.trim(),\n    '',\n    `Sauf erreur de notre part, votre émargement du ${formattedDate} de ${startTime} à ${endTime} pour la formation \"${sessionName}\" n’a pas encore été signé.`,\n    '',\n    'Pouvez-vous vous connecter à votre espace apprenant Digiforma afin de régulariser votre signature, s’il vous plaît ?',\n    '',\n    'Cette signature est importante, car elle permet de justifier officiellement votre présence en formation.',\n    linkSentence,\n    '',\n    'Merci d’avance pour votre retour.',\n    '',\n    'Cordialement,',\n    'Australe Formation'\n  ].join('\\n');\n}\n\nfunction buildWhatsappReminderMessage({ firstName, sessionName, slotDate, startTime, endTime, extranetUrl }) {\n  const formattedDate = formatDateFR(slotDate);\n  const linkPart = extranetUrl ? ` Lien : ${extranetUrl}` : '';\n\n  return `Bonjour ${firstName || ''}, sauf erreur de notre part, votre émargement du ${formattedDate} de ${startTime} à ${endTime} pour la formation \"${sessionName}\" n’a pas encore été signé. Pouvez-vous vous connecter à votre espace Digiforma pour le régulariser, s’il vous plaît ? Merci, Australe Formation.${linkPart}`.trim();\n}\n\nfunction isPastSlot(slot) {\n  if (!slot.date) {\n    return false;\n  }\n\n  const now = new Date();\n  const endTime = normalizeTime(slot.endTime || '23:59');\n  const slotEndDate = new Date(`${slot.date}T${endTime}`);\n\n  if (Number.isNaN(slotEndDate.getTime())) {\n    return false;\n  }\n\n  if (includeTodaySlots) {\n    return slotEndDate < now;\n  }\n\n  return toDateKey(slotEndDate) < toDateKey(now);\n}\n\nfunction isSignatureFilled(signature) {\n  return Boolean(String(signature?.signature || '').trim());\n}\n\nfunction isSameTrainee(signatureTrainee, traineeId, traineeEmail) {\n  const signatureTraineeId = String(signatureTrainee.id || '');\n  const signatureTraineeEmail = cleanEmail(signatureTrainee.email);\n\n  if (traineeId && signatureTraineeId && signatureTraineeId === traineeId) {\n    return true;\n  }\n\n  return Boolean(traineeEmail && signatureTraineeEmail && signatureTraineeEmail === traineeEmail);\n}\n\nfunction computeDaysLate(slotDate) {\n  const date = new Date(`${slotDate}T00:00:00`);\n\n  if (Number.isNaN(date.getTime())) {\n    return 0;\n  }\n\n  const today = new Date();\n  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());\n  const slotMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());\n  const diffMs = todayMidnight.getTime() - slotMidnight.getTime();\n\n  return Math.max(0, Math.floor(diffMs / 86400000));\n}\n\nfunction computePriority(daysLate) {\n  if (daysLate >= 7) return 'critical';\n  if (daysLate >= 3) return 'high';\n  return 'normal';\n}\n\nfunction sortReminders(reminders) {\n  const priorityWeight = { critical: 1, high: 2, normal: 3 };\n\n  return reminders.sort((a, b) => {\n    const priorityDiff = (priorityWeight[a.priority] || 99) - (priorityWeight[b.priority] || 99);\n\n    if (priorityDiff !== 0) {\n      return priorityDiff;\n    }\n\n    return b.daysLate - a.daysLate;\n  });\n}\n\nfunction removeDuplicateReminders(reminders) {\n  const map = new Map();\n\n  reminders.forEach((reminder) => {\n    if (!map.has(reminder.id)) {\n      map.set(reminder.id, reminder);\n    }\n  });\n\n  return Array.from(map.values());\n}\n\nfunction normalizeTime(value) {\n  const stringValue = String(value || '').trim();\n\n  if (!stringValue) return '00:00';\n  if (/^\\d{2}:\\d{2}$/.test(stringValue)) return stringValue;\n  if (/^\\d{2}:\\d{2}:\\d{2}$/.test(stringValue)) return stringValue.slice(0, 5);\n\n  return stringValue;\n}\n\nfunction formatDateFR(value) {\n  if (!value) return 'date non renseignée';\n\n  const date = new Date(`${value}T00:00:00`);\n\n  if (Number.isNaN(date.getTime())) {\n    return value;\n  }\n\n  return new Intl.DateTimeFormat('fr-FR').format(date);\n}\n\nfunction toDateKey(date) {\n  return [\n    date.getFullYear(),\n    String(date.getMonth() + 1).padStart(2, '0'),\n    String(date.getDate()).padStart(2, '0')\n  ].join('-');\n}\n\nfunction buildFullName(firstname, lastname) {\n  return [firstname, lastname].filter(Boolean).join(' ').trim();\n}\n\nfunction cleanEmail(value) {\n  return String(value || '').trim().toLowerCase();\n}\n\nfunction buildReminderId(session, slot, trainee) {\n  return ['reminder', session.id || 'session', slot.id || 'slot', trainee.id || cleanEmail(trainee.email) || 'trainee'].join('_');\n}\n\nfunction buildSummary({ lightSessions, filteredSessions, detailedSessions, failedSessions, planningResults, reminders }) {\n  return {\n    generatedAt: new Date().toISOString(),\n    source: 'n8n',\n    filters: {\n      targetYear,\n      pipelineState,\n      onlyActive,\n      maxSessionsDetails,\n      includeTodaySlots\n    },\n    planning: {\n      totalSessionsFetched: lightSessions.length,\n      totalSessionsAfterFilter: filteredSessions.length,\n      totalSessions: detailedSessions.length,\n      totalSessionsFailed: failedSessions.length,\n      failedSessions,\n      totalLearners: planningResults.length,\n      totalOk: planningResults.filter((item) => item.status.code === 'ok').length,\n      totalMissing: planningResults.filter((item) => item.status.code === 'missing').length,\n      totalWarning: planningResults.filter((item) => item.status.code === 'warning').length,\n      results: planningResults\n    },\n    reminders: {\n      totalReminders: reminders.length,\n      totalCritical: reminders.filter((item) => item.priority === 'critical').length,\n      totalHigh: reminders.filter((item) => item.priority === 'high').length,\n      totalNormal: reminders.filter((item) => item.priority === 'normal').length,\n      results: reminders\n    }\n  };\n}\n\nasync function postCacheToApp(cachePayload) {\n  if (!postToApp) {\n    return {\n      posted: false,\n      reason: 'postToApp désactivé'\n    };\n  }\n\n  if (!appCacheUrl) {\n    return {\n      posted: false,\n      reason: 'appCacheUrl manquant'\n    };\n  }\n\n  const response = await fetch(appCacheUrl, {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      'X-Australe-Cache-Secret': cacheSecret || ''\n    },\n    body: JSON.stringify(cachePayload)\n  });\n\n  const text = await response.text();\n\n  if (!response.ok) {\n    throw new Error(`Erreur POST app cache ${response.status} : ${text}`);\n  }\n\n  return {\n    posted: true,\n    status: response.status,\n    response: text\n  };\n}\n\nconst lightSessions = await fetchTrainingSessionsLight();\n\nconst filteredSessions = lightSessions\n  .filter(isTargetYearSession)\n  .filter(isAllowedPipelineState);\n\nconst sessionsToInspect = filteredSessions.slice(0, maxSessionsDetails);\n\nconst detailedSessions = [];\nconst failedSessions = [];\n\nfor (const lightSession of sessionsToInspect) {\n  try {\n    const detailedSession = await fetchTrainingSessionDetails(lightSession.id);\n\n    if (detailedSession && isTargetYearSession(detailedSession) && isAllowedPipelineState(detailedSession)) {\n      detailedSessions.push(detailedSession);\n    }\n  } catch (error) {\n    failedSessions.push({\n      id: lightSession.id,\n      name: lightSession.name,\n      error: error.message\n    });\n  }\n}\n\nconst planningResults = buildPlanningResults(detailedSessions);\nconst reminders = buildSignatureReminders(detailedSessions);\n\nconst cachePayload = buildSummary({\n  lightSessions,\n  filteredSessions,\n  detailedSessions,\n  failedSessions,\n  planningResults,\n  reminders\n});\n\nconst postResult = await postCacheToApp(cachePayload);\n\nreturn [\n  {\n    json: {\n      success: true,\n      message: 'Synchronisation Digiforma terminée',\n      postResult,\n      summary: {\n        generatedAt: cachePayload.generatedAt,\n        totalSessionsFetched: cachePayload.planning.totalSessionsFetched,\n        totalSessionsAfterFilter: cachePayload.planning.totalSessionsAfterFilter,\n        totalSessions: cachePayload.planning.totalSessions,\n        totalLearners: cachePayload.planning.totalLearners,\n        totalPlanningMissing: cachePayload.planning.totalMissing,\n        totalPlanningWarning: cachePayload.planning.totalWarning,\n        totalReminders: cachePayload.reminders.totalReminders,\n        totalCriticalReminders: cachePayload.reminders.totalCritical,\n        totalFailedSessions: cachePayload.planning.totalSessionsFailed\n      }\n    }\n  }\n];"
+      },
+      "id": "fetch-and-analyze",
+      "name": "Fetch Digiforma + Analyse + Push Cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        230
+      ]
+    }
+  ],
+  "connections": {
+    "Lancer manuellement": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Toutes les 2 heures": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Digiforma + Analyse + Push Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z",
+      "id": "australe-formation",
+      "name": "Australe Formation"
+    }
+  ],
+  "triggerCount": 2,
+  "updatedAt": "2026-05-13T00:00:00.000Z",
+  "versionId": "australe-digiforma-cache-v1"
+}

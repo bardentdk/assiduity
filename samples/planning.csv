@@ -1,0 +1,5 @@
+nom;prenom;email;session;module;date;debut;fin
+Payet;Jean;jean.payet@example.com;SA 2026 - Groupe A;Accueil;13/05/2026;08:00;12:00
+Payet;Jean;jean.payet@example.com;SA 2026 - Groupe A;Bureautique;14/05/2026;08:00;12:00
+Payet;Jean;jean.payet@example.com;SA 2026 - Groupe A;Communication;15/05/2026;08:00;12:00
+Fontaine;Marc;marc.fontaine@example.com;Compta 2026 - Groupe B;Introduction comptable;13/05/2026;08:00;12:00

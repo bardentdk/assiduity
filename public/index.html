@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Australe Control Planning</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./assets/css/app.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">AF</div>
+
+        <div>
+          <p class="brand-kicker">Australe Formation</p>
+          <h1 id="appName">Control Planning</h1>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#cacheSection" class="active">Cache Digiforma</a>
+        <a href="#planningSection">Contrôle planning</a>
+        <a href="#remindersSection">Relances émargements</a>
+        <a href="#" class="disabled-link">Historique</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span id="appVersion">Australe Formation · v1.0.0</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="hero-card">
+        <div>
+          <p class="eyebrow">Synchronisation n8n + Digiforma</p>
+
+          <h2>Dashboard administratif Digiforma</h2>
+
+          <p>
+            n8n récupère les données Digiforma, prépare les analyses, puis l’application affiche
+            les plannings et les relances à partir d’un cache rapide.
+          </p>
+        </div>
+
+        <div class="hero-badge">
+          <span>Aujourd’hui</span>
+          <strong id="currentDate">13/05/2026</strong>
+        </div>
+      </section>
+
+      <section id="cacheSection" class="panel-card mt-4">
+        <div class="sync-layout">
+          <div>
+            <p class="eyebrow dark">Cache Digiforma</p>
+
+            <h3>Données préparées par n8n</h3>
+
+            <p>
+              Cliquez pour charger les dernières données synchronisées par le workflow n8n.
+            </p>
+          </div>
+
+          <div class="sync-actions">
+            <button id="loadCacheBtn" class="btn btn-primary btn-lg">
+              Charger le cache Digiforma
+            </button>
+
+            <button id="exportFullCacheBtn" class="btn btn-outline-secondary btn-lg" disabled>
+              Export JSON
+            </button>
+          </div>
+        </div>
+
+        <div id="cacheAlert" class="alert d-none mt-4 mb-0" role="alert"></div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-12 col-md-3">
+            <div class="stat-card">
+              <span>Dernière génération n8n</span>
+              <strong id="cacheGeneratedAt" class="fs-6">Non chargé</strong>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="stat-card">
+              <span>Réception dans l’app</span>
+              <strong id="cacheReceivedAt" class="fs-6">Non chargé</strong>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="stat-card">
+              <span>Année</span>
+              <strong id="cacheYear">-</strong>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="stat-card">
+              <span>État session</span>
+              <strong id="cachePipelineState" class="fs-6">-</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="planningSection" class="stats-grid">
+        <article class="stat-card">
+          <span>Total apprenants</span>
+          <strong id="totalLearners">0</strong>
+        </article>
+
+        <article class="stat-card success">
+          <span>Planning OK</span>
+          <strong id="totalOk">0</strong>
+        </article>
+
+        <article class="stat-card danger">
+          <span>Sans planning</span>
+          <strong id="totalMissing">0</strong>
+        </article>
+
+        <article class="stat-card warning">
+          <span>À vérifier</span>
+          <strong id="totalWarning">0</strong>
+        </article>
+      </section>
+
+      <section class="panel-card">
+        <div class="table-toolbar">
+          <div>
+            <p class="eyebrow dark">Résultats planning</p>
+            <h3>Analyse des apprenants</h3>
+            <p>
+              Données issues du cache préparé par n8n.
+            </p>
+          </div>
+
+          <div class="filters-group">
+            <input
+              type="search"
+              id="planningSearchInput"
+              class="form-control"
+              placeholder="Rechercher apprenant, email, session..."
+            />
+
+            <select id="planningStatusFilter" class="form-select">
+              <option value="all">Tous les statuts</option>
+              <option value="missing">Planning manquant</option>
+              <option value="warning">À vérifier</option>
+              <option value="ok">Planning OK</option>
+            </select>
+
+            <button id="exportPlanningBtn" class="btn btn-outline-success" disabled>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Apprenant</th>
+                <th>Email</th>
+                <th>Session</th>
+                <th>Dates session</th>
+                <th>Créneaux</th>
+                <th>Statut</th>
+                <th>Action recommandée</th>
+              </tr>
+            </thead>
+
+            <tbody id="planningBody">
+              <tr>
+                <td colspan="7" class="empty-state">
+                  Aucun cache chargé pour le moment.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="remindersSection" class="panel-card mt-4">
+        <div class="table-toolbar">
+          <div>
+            <p class="eyebrow dark">Relances émargements</p>
+
+            <h3>Apprenants avec émargements non signés</h3>
+
+            <p>
+              Liste calculée par n8n à partir des créneaux passés et signatures Digiforma.
+            </p>
+          </div>
+
+          <div class="sync-actions">
+            <button id="exportRemindersBtn" class="btn btn-outline-success btn-lg" disabled>
+              Exporter les relances
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-grid mt-4">
+          <article class="stat-card danger">
+            <span>Total relances</span>
+            <strong id="totalReminders">0</strong>
+          </article>
+
+          <article class="stat-card danger">
+            <span>Critiques</span>
+            <strong id="totalCriticalReminders">0</strong>
+          </article>
+
+          <article class="stat-card warning">
+            <span>Priorité haute</span>
+            <strong id="totalHighReminders">0</strong>
+          </article>
+
+          <article class="stat-card">
+            <span>Normales</span>
+            <strong id="totalNormalReminders">0</strong>
+          </article>
+        </div>
+
+        <div class="table-toolbar mt-4">
+          <div></div>
+
+          <div class="filters-group">
+            <input
+              type="search"
+              id="remindersSearchInput"
+              class="form-control"
+              placeholder="Rechercher relance, apprenant, session..."
+            />
+
+            <select id="remindersPriorityFilter" class="form-select">
+              <option value="all">Toutes les priorités</option>
+              <option value="critical">Critique</option>
+              <option value="high">Haute</option>
+              <option value="normal">Normale</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="remindersAlert" class="alert d-none mt-3" role="alert"></div>
+
+        <div class="table-responsive mt-3">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Apprenant</th>
+                <th>Contact</th>
+                <th>Session</th>
+                <th>Créneau</th>
+                <th>Retard</th>
+                <th>Priorité</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody id="remindersBody">
+              <tr>
+                <td colspan="7" class="empty-state">
+                  Aucun cache chargé pour le moment.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let fullCache = null;
+    let planningResults = [];
+    let signatureReminders = [];
+
+    const elements = {
+      appName: document.getElementById('appName'),
+      appVersion: document.getElementById('appVersion'),
+      currentDate: document.getElementById('currentDate'),
+
+      loadCacheBtn: document.getElementById('loadCacheBtn'),
+      exportFullCacheBtn: document.getElementById('exportFullCacheBtn'),
+      cacheAlert: document.getElementById('cacheAlert'),
+
+      cacheGeneratedAt: document.getElementById('cacheGeneratedAt'),
+      cacheReceivedAt: document.getElementById('cacheReceivedAt'),
+      cacheYear: document.getElementById('cacheYear'),
+      cachePipelineState: document.getElementById('cachePipelineState'),
+
+      totalLearners: document.getElementById('totalLearners'),
+      totalOk: document.getElementById('totalOk'),
+      totalMissing: document.getElementById('totalMissing'),
+      totalWarning: document.getElementById('totalWarning'),
+
+      planningSearchInput: document.getElementById('planningSearchInput'),
+      planningStatusFilter: document.getElementById('planningStatusFilter'),
+      exportPlanningBtn: document.getElementById('exportPlanningBtn'),
+      planningBody: document.getElementById('planningBody'),
+
+      totalReminders: document.getElementById('totalReminders'),
+      totalCriticalReminders: document.getElementById('totalCriticalReminders'),
+      totalHighReminders: document.getElementById('totalHighReminders'),
+      totalNormalReminders: document.getElementById('totalNormalReminders'),
+
+      remindersSearchInput: document.getElementById('remindersSearchInput'),
+      remindersPriorityFilter: document.getElementById('remindersPriorityFilter'),
+      exportRemindersBtn: document.getElementById('exportRemindersBtn'),
+      remindersAlert: document.getElementById('remindersAlert'),
+      remindersBody: document.getElementById('remindersBody')
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setCurrentDate();
+      bindEvents();
+      await loadConfig();
+      await loadCacheFromServer();
+    });
+
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config');
+
+        if (!response.ok) {
+          return;
+        }
+
+        const config = await response.json();
+
+        elements.appName.textContent = config.appName || 'Australe Control Planning';
+        elements.appVersion.textContent = `${config.organizationName || 'Australe Formation'} · v${config.appVersion || '1.0.0'}`;
+      } catch (error) {
+        console.warn('Configuration indisponible.', error);
+      }
+    }
+
+    function bindEvents() {
+      elements.loadCacheBtn.addEventListener('click', loadCacheFromServer);
+      elements.exportFullCacheBtn.addEventListener('click', exportFullCache);
+
+      elements.planningSearchInput.addEventListener('input', applyPlanningFilters);
+      elements.planningStatusFilter.addEventListener('change', applyPlanningFilters);
+      elements.exportPlanningBtn.addEventListener('click', exportPlanningAnomalies);
+
+      elements.remindersSearchInput.addEventListener('input', applyReminderFilters);
+      elements.remindersPriorityFilter.addEventListener('change', applyReminderFilters);
+      elements.exportRemindersBtn.addEventListener('click', exportSignatureReminders);
+    }
+
+    async function loadCacheFromServer() {
+      try {
+        setCacheLoadingState(true);
+        hideCacheAlert();
+
+        const response = await fetch('/api/cache/digiforma');
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.message || 'Aucun cache disponible.');
+        }
+
+        fullCache = payload.data;
+
+        planningResults = Array.isArray(fullCache.planning?.results)
+          ? fullCache.planning.results
+          : [];
+
+        signatureReminders = Array.isArray(fullCache.reminders?.results)
+          ? fullCache.reminders.results
+          : [];
+
+        renderCacheMeta(fullCache);
+        renderPlanningStats(fullCache.planning || {});
+        renderPlanningRows(planningResults);
+        renderReminderStats(fullCache.reminders || {});
+        renderSignatureReminders(signatureReminders);
+
+        elements.exportFullCacheBtn.disabled = false;
+        elements.exportPlanningBtn.disabled = planningResults.length === 0;
+        elements.exportRemindersBtn.disabled = signatureReminders.length === 0;
+
+        showCacheAlert(
+          'success',
+          `Cache chargé. ${planningResults.length} apprenant(s), ${signatureReminders.length} relance(s) détectée(s).`
+        );
+      } catch (error) {
+        renderEmptyPlanningState('Aucun cache chargé.');
+        renderEmptyRemindersState('Aucun cache chargé.');
+        showCacheAlert('warning', error.message || 'Impossible de charger le cache.');
+      } finally {
+        setCacheLoadingState(false);
+      }
+    }
+
+    function setCacheLoadingState(isLoading) {
+      elements.loadCacheBtn.disabled = isLoading;
+      elements.loadCacheBtn.textContent = isLoading
+        ? 'Chargement du cache...'
+        : 'Charger le cache Digiforma';
+    }
+
+    function renderCacheMeta(cache) {
+      elements.cacheGeneratedAt.textContent = formatDateTime(cache.generatedAt);
+      elements.cacheReceivedAt.textContent = formatDateTime(cache.receivedAt);
+      elements.cacheYear.textContent = cache.filters?.targetYear || '-';
+      elements.cachePipelineState.textContent = getPipelineLabel(
+        cache.filters?.pipelineState,
+        cache.filters?.onlyActive
+      );
+    }
+
+    function renderPlanningStats(planning) {
+      elements.totalLearners.textContent = planning.totalLearners || 0;
+      elements.totalOk.textContent = planning.totalOk || 0;
+      elements.totalMissing.textContent = planning.totalMissing || 0;
+      elements.totalWarning.textContent = planning.totalWarning || 0;
+    }
+
+    function applyPlanningFilters() {
+      const search = elements.planningSearchInput.value.trim().toLowerCase();
+      const status = elements.planningStatusFilter.value;
+
+      const rows = planningResults.filter((row) => {
+        const rowStatus = getStatusCode(row);
+
+        const matchesStatus = status === 'all' || rowStatus === status;
+
+        const searchableContent = [
+          row.fullName,
+          row.email,
+          row.sessionName,
+          row.sessionStatus,
+          row.status?.label,
+          row.status?.action
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        const matchesSearch = !search || searchableContent.includes(search);
+
+        return matchesStatus && matchesSearch;
+      });
+
+      renderPlanningRows(rows);
+    }
+
+    function renderPlanningRows(rows) {
+      if (!rows.length) {
+        renderEmptyPlanningState('Aucun résultat planning à afficher.');
+        return;
+      }
+
+      elements.planningBody.innerHTML = rows.map((row) => {
+        const statusCode = getStatusCode(row);
+        const statusLabel = row.status?.label || getFallbackStatusLabel(statusCode);
+        const action = row.status?.action || 'Contrôle manuel recommandé.';
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHTML(row.fullName || 'Non renseigné')}</strong>
+              <div class="text-muted small">
+                ID : ${escapeHTML(row.learnerId || 'N/A')}
+              </div>
+            </td>
+
+            <td>${escapeHTML(row.email || 'Non renseigné')}</td>
+
+            <td>
+              <strong>${escapeHTML(row.sessionName || 'Session non renseignée')}</strong>
+              <div class="text-muted small">
+                ${escapeHTML(row.sessionStatus || '')}
+              </div>
+            </td>
+
+            <td>
+              <div>${formatDate(row.sessionStartDate)}</div>
+              <div class="text-muted small">
+                au ${formatDate(row.sessionEndDate)}
+              </div>
+            </td>
+
+            <td>
+              <strong>${Number(row.slotsCount || 0)}</strong>
+            </td>
+
+            <td>
+              <span class="badge-status ${getStatusClass(statusCode)}">
+                ${escapeHTML(statusLabel)}
+              </span>
+            </td>
+
+            <td>${escapeHTML(action)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderEmptyPlanningState(message) {
+      elements.planningBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-state">
+            ${escapeHTML(message)}
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderReminderStats(reminders) {
+      elements.totalReminders.textContent = reminders.totalReminders || 0;
+      elements.totalCriticalReminders.textContent = reminders.totalCritical || 0;
+      elements.totalHighReminders.textContent = reminders.totalHigh || 0;
+      elements.totalNormalReminders.textContent = reminders.totalNormal || 0;
+    }
+
+    function applyReminderFilters() {
+      const search = elements.remindersSearchInput.value.trim().toLowerCase();
+      const priority = elements.remindersPriorityFilter.value;
+
+      const rows = signatureReminders.filter((reminder) => {
+        const matchesPriority = priority === 'all' || reminder.priority === priority;
+
+        const searchableContent = [
+          reminder.fullName,
+          reminder.email,
+          reminder.phone,
+          reminder.sessionName,
+          reminder.subsessionName,
+          reminder.priority
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        const matchesSearch = !search || searchableContent.includes(search);
+
+        return matchesPriority && matchesSearch;
+      });
+
+      renderSignatureReminders(rows);
+    }
+
+    function renderSignatureReminders(reminders) {
+      if (!reminders.length) {
+        renderEmptyRemindersState('Aucune relance à afficher.');
+        return;
+      }
+
+      elements.remindersBody.innerHTML = reminders.map((reminder) => {
+        const originalIndex = signatureReminders.findIndex((item) => item.id === reminder.id);
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHTML(reminder.fullName || 'Non renseigné')}</strong>
+              <div class="text-muted small">
+                ${escapeHTML(reminder.learnerId || '')}
+              </div>
+            </td>
+
+            <td>
+              <div>${escapeHTML(reminder.email || 'Email non renseigné')}</div>
+              <div class="text-muted small">${escapeHTML(reminder.phone || '')}</div>
+            </td>
+
+            <td>
+              <strong>${escapeHTML(reminder.sessionName || 'Session non renseignée')}</strong>
+              <div class="text-muted small">
+                ${escapeHTML(reminder.subsessionName || reminder.sessionCode || '')}
+              </div>
+            </td>
+
+            <td>
+              <div>${formatDate(reminder.slotDate)}</div>
+              <div class="text-muted small">
+                ${escapeHTML(reminder.startTime || '')} - ${escapeHTML(reminder.endTime || '')}
+              </div>
+            </td>
+
+            <td>
+              <strong>${Number(reminder.daysLate || 0)} j</strong>
+            </td>
+
+            <td>
+              <span class="badge-status ${getReminderPriorityClass(reminder.priority)}">
+                ${getReminderPriorityLabel(reminder.priority)}
+              </span>
+            </td>
+
+            <td>
+              <div class="d-flex flex-wrap gap-2">
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  data-reminder-index="${originalIndex}"
+                  data-message-type="email"
+                >
+                  Copier email
+                </button>
+
+                <button
+                  class="btn btn-sm btn-outline-success"
+                  data-reminder-index="${originalIndex}"
+                  data-message-type="whatsapp"
+                >
+                  Copier WhatsApp
+                </button>
+
+                ${reminder.extranetUrl ? `
+                  <a
+                    class="btn btn-sm btn-outline-secondary"
+                    href="${escapeHTML(reminder.extranetUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Espace
+                  </a>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      bindReminderCopyButtons();
+    }
+
+    function bindReminderCopyButtons() {
+      const buttons = document.querySelectorAll('[data-reminder-index][data-message-type]');
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', async () => {
+          const index = Number(button.dataset.reminderIndex);
+          const type = button.dataset.messageType;
+
+          await copyReminderMessage(index, type);
+        });
+      });
+    }
+
+    function renderEmptyRemindersState(message) {
+      elements.remindersBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-state">
+            ${escapeHTML(message)}
+          </td>
+        </tr>
+      `;
+    }
+
+    async function copyReminderMessage(index, type) {
+      const reminder = signatureReminders[index];
+
+      if (!reminder) {
+        showRemindersAlert('danger', 'Relance introuvable.');
+        return;
+      }
+
+      const message = reminder.messages?.[type];
+
+      if (!message) {
+        showRemindersAlert('danger', 'Message de relance indisponible.');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(message);
+
+        showRemindersAlert(
+          'success',
+          `Message ${type === 'email' ? 'email' : 'WhatsApp'} copié pour ${reminder.fullName}.`
+        );
+      } catch (error) {
+        showRemindersAlert('danger', 'Impossible de copier le message.');
+      }
+    }
+
+    function exportPlanningAnomalies() {
+      const rows = planningResults.filter((row) => getStatusCode(row) !== 'ok');
+
+      const headers = [
+        'Apprenant',
+        'Email',
+        'Session',
+        'Date début session',
+        'Date fin session',
+        'Nombre de créneaux',
+        'Statut',
+        'Action recommandée'
+      ];
+
+      const lines = rows.map((row) => [
+        row.fullName || '',
+        row.email || '',
+        row.sessionName || '',
+        row.sessionStartDate || '',
+        row.sessionEndDate || '',
+        row.slotsCount || 0,
+        row.status?.label || '',
+        row.status?.action || ''
+      ]);
+
+      downloadCSV(headers, lines, `australe-anomalies-planning-${getExportDate()}.csv`);
+    }
+
+    function exportSignatureReminders() {
+      const headers = [
+        'Apprenant',
+        'Email',
+        'Téléphone',
+        'Session',
+        'Date créneau',
+        'Heure début',
+        'Heure fin',
+        'Jours de retard',
+        'Priorité',
+        'Lien extranet'
+      ];
+
+      const lines = signatureReminders.map((reminder) => [
+        reminder.fullName || '',
+        reminder.email || '',
+        reminder.phone || '',
+        reminder.sessionName || '',
+        reminder.slotDate || '',
+        reminder.startTime || '',
+        reminder.endTime || '',
+        reminder.daysLate || 0,
+        reminder.priority || '',
+        reminder.extranetUrl || ''
+      ]);
+
+      downloadCSV(headers, lines, `australe-relances-emargements-${getExportDate()}.csv`);
+    }
+
+    function exportFullCache() {
+      if (!fullCache) {
+        showCacheAlert('info', 'Aucun cache à exporter.');
+        return;
+      }
+
+      const blob = new Blob(
+        [JSON.stringify(fullCache, null, 2)],
+        {
+          type: 'application/json;charset=utf-8;'
+        }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = `australe-cache-digiforma-${getExportDate()}.json`;
+      link.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCSV(headers, lines, filename) {
+      const csvContent = [
+        headers,
+        ...lines
+      ]
+        .map((line) => line.map(escapeCSVValue).join(';'))
+        .join('\n');
+
+      const blob = new Blob([csvContent], {
+        type: 'text/csv;charset=utf-8;'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = filename;
+      link.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function showCacheAlert(type, message) {
+      elements.cacheAlert.className = `alert alert-${type} mt-4 mb-0`;
+      elements.cacheAlert.textContent = message;
+      elements.cacheAlert.classList.remove('d-none');
+    }
+
+    function hideCacheAlert() {
+      elements.cacheAlert.classList.add('d-none');
+      elements.cacheAlert.textContent = '';
+    }
+
+    function showRemindersAlert(type, message) {
+      elements.remindersAlert.className = `alert alert-${type} mt-3`;
+      elements.remindersAlert.textContent = message;
+      elements.remindersAlert.classList.remove('d-none');
+    }
+
+    function getStatusCode(row) {
+      return row.status?.code || row.status || 'warning';
+    }
+
+    function getFallbackStatusLabel(statusCode) {
+      const labels = {
+        ok: 'Planning OK',
+        missing: 'Planning manquant',
+        warning: 'À vérifier'
+      };
+
+      return labels[statusCode] || 'À vérifier';
+    }
+
+    function getStatusClass(statusCode) {
+      const classes = {
+        ok: 'badge-ok',
+        missing: 'badge-missing',
+        warning: 'badge-warning'
+      };
+
+      return classes[statusCode] || 'badge-warning';
+    }
+
+    function getReminderPriorityClass(priority) {
+      const classes = {
+        critical: 'badge-missing',
+        high: 'badge-warning',
+        normal: 'badge-ok'
+      };
+
+      return classes[priority] || 'badge-warning';
+    }
+
+    function getReminderPriorityLabel(priority) {
+      const labels = {
+        critical: 'Critique',
+        high: 'Haute',
+        normal: 'Normale'
+      };
+
+      return labels[priority] || 'À vérifier';
+    }
+
+    function getPipelineLabel(pipelineState, onlyActive) {
+      if (!onlyActive || pipelineState === 'all') {
+        return 'Tous les états';
+      }
+
+      const labels = {
+        ongoing: 'Sessions actives',
+        finished: 'Sessions terminées',
+        draft: 'Brouillons',
+        incomplete: 'Sessions incomplètes',
+        crm_only: 'CRM uniquement'
+      };
+
+      return labels[pipelineState] || pipelineState || '-';
+    }
+
+    function setCurrentDate() {
+      const formatter = new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      elements.currentDate.textContent = formatter.format(new Date());
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return 'Non renseignée';
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        const fallbackDate = new Date(`${value}T00:00:00`);
+
+        if (Number.isNaN(fallbackDate.getTime())) {
+          return value;
+        }
+
+        return new Intl.DateTimeFormat('fr-FR').format(fallbackDate);
+      }
+
+      return new Intl.DateTimeFormat('fr-FR').format(date);
+    }
+
+    function formatDateTime(value) {
+      if (!value) {
+        return 'Non renseigné';
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return value;
+      }
+
+      return new Intl.DateTimeFormat('fr-FR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      }).format(date);
+    }
+
+    function getExportDate() {
+      const date = new Date();
+
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
+    }
+
+    function escapeCSVValue(value) {
+      const stringValue = String(value || '');
+
+      if (
+        stringValue.includes(';') ||
+        stringValue.includes('"') ||
+        stringValue.includes('\n')
+      ) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+
+      return stringValue;
+    }
+
+    function escapeHTML(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
