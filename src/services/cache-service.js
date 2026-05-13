@@ -4,6 +4,15 @@ const path = require('path');
 const CACHE_FILE_PATH = process.env.CACHE_FILE_PATH || 'storage/digiforma-cache.json';
 
 function getCachePath() {
+  /**
+   * Important Vercel :
+   * - /tmp/digiforma-cache.json doit rester un chemin absolu.
+   * - storage/digiforma-cache.json peut rester relatif au projet en local.
+   */
+  if (path.isAbsolute(CACHE_FILE_PATH)) {
+    return CACHE_FILE_PATH;
+  }
+
   return path.join(process.cwd(), CACHE_FILE_PATH);
 }
 
@@ -89,5 +98,6 @@ module.exports = {
   saveDigiformaCache,
   getDigiformaCache,
   clearDigiformaCache,
-  validateDigiformaCache
+  validateDigiformaCache,
+  getCachePath
 };

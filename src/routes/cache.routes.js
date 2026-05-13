@@ -4,7 +4,8 @@ const {
   saveDigiformaCache,
   getDigiformaCache,
   clearDigiformaCache,
-  validateDigiformaCache
+  validateDigiformaCache,
+  getCachePath
 } = require('../services/cache-service');
 
 const router = express.Router();
@@ -15,7 +16,7 @@ function verifyCacheSecret(req, res, next) {
   if (!expectedSecret) {
     return res.status(500).json({
       success: false,
-      message: 'CACHE_SECRET est manquant dans le fichier .env.'
+      message: 'CACHE_SECRET est manquant dans les variables d’environnement.'
     });
   }
 
@@ -41,6 +42,7 @@ router.post('/digiforma', verifyCacheSecret, async (req, res) => {
       success: true,
       message: 'Cache Digiforma enregistré avec succès.',
       data: {
+        cachePath: getCachePath(),
         generatedAt: savedCache.generatedAt || null,
         receivedAt: savedCache.receivedAt,
         totalLearners: savedCache.planning?.totalLearners || 0,
@@ -53,7 +55,11 @@ router.post('/digiforma', verifyCacheSecret, async (req, res) => {
 
     res.status(400).json({
       success: false,
-      message: error.message || 'Impossible d’enregistrer le cache Digiforma.'
+      message: error.message || 'Impossible d’enregistrer le cache Digiforma.',
+      debug: {
+        cachePath: getCachePath(),
+        cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+      }
     });
   }
 });
@@ -65,7 +71,11 @@ router.get('/digiforma', async (req, res) => {
     if (!cache) {
       return res.status(404).json({
         success: false,
-        message: 'Aucun cache Digiforma disponible pour le moment.'
+        message: 'Aucun cache Digiforma disponible pour le moment.',
+        debug: {
+          cachePath: getCachePath(),
+          cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+        }
       });
     }
 
@@ -78,7 +88,11 @@ router.get('/digiforma', async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || 'Impossible de lire le cache Digiforma.'
+      message: error.message || 'Impossible de lire le cache Digiforma.',
+      debug: {
+        cachePath: getCachePath(),
+        cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+      }
     });
   }
 });
@@ -91,7 +105,11 @@ router.get('/digiforma/status', async (req, res) => {
       return res.json({
         success: true,
         hasCache: false,
-        message: 'Aucun cache disponible.'
+        message: 'Aucun cache disponible.',
+        debug: {
+          cachePath: getCachePath(),
+          cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+        }
       });
     }
 
@@ -102,6 +120,10 @@ router.get('/digiforma/status', async (req, res) => {
       receivedAt: cache.receivedAt || null,
       source: cache.source || 'unknown',
       filters: cache.filters || {},
+      debug: {
+        cachePath: getCachePath(),
+        cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+      },
       planning: {
         totalLearners: cache.planning?.totalLearners || 0,
         totalMissing: cache.planning?.totalMissing || 0,
@@ -120,7 +142,11 @@ router.get('/digiforma/status', async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || 'Impossible de lire le statut du cache.'
+      message: error.message || 'Impossible de lire le statut du cache.',
+      debug: {
+        cachePath: getCachePath(),
+        cacheFilePathEnv: process.env.CACHE_FILE_PATH || null
+      }
     });
   }
 });
@@ -134,14 +160,20 @@ router.delete('/digiforma', verifyCacheSecret, async (req, res) => {
       deleted,
       message: deleted
         ? 'Cache Digiforma supprimé.'
-        : 'Aucun cache à supprimer.'
+        : 'Aucun cache à supprimer.',
+      debug: {
+        cachePath: getCachePath()
+      }
     });
   } catch (error) {
     console.error('Erreur DELETE /api/cache/digiforma :', error);
 
     res.status(500).json({
       success: false,
-      message: error.message || 'Impossible de supprimer le cache Digiforma.'
+      message: error.message || 'Impossible de supprimer le cache Digiforma.',
+      debug: {
+        cachePath: getCachePath()
+      }
     });
   }
 });
