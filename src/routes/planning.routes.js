@@ -27,10 +27,13 @@ router.get('/sync', async (req, res) => {
   try {
     const options = {
       targetYear: req.query.year ? Number(req.query.year) : undefined,
+
       pipelineState: req.query.pipelineState || undefined,
+
       onlyActive: req.query.onlyActive !== undefined
         ? String(req.query.onlyActive) === 'true'
         : undefined,
+
       maxSessionsDetails: req.query.maxSessionsDetails
         ? Number(req.query.maxSessionsDetails)
         : undefined

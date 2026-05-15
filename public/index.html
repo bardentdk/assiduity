@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="fr">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Australe Control Planning</title>
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
 
   <link rel="stylesheet" href="./assets/css/app.css" />
 </head>
@@ -25,7 +27,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a href="#cacheSection" class="active">Cache Digiforma</a>
+        <a href="#syncSection" class="active">Synchronisation</a>
         <a href="#planningSection">Contrôle planning</a>
         <a href="#remindersSection">Relances émargements</a>
         <a href="#" class="disabled-link">Historique</a>
@@ -39,13 +41,13 @@
     <main class="main-content">
       <section class="hero-card">
         <div>
-          <p class="eyebrow">Synchronisation n8n + Digiforma</p>
+          <p class="eyebrow">Connexion directe Digiforma GraphQL</p>
 
-          <h2>Dashboard administratif Digiforma</h2>
+          <h2>Contrôle administratif Digiforma</h2>
 
           <p>
-            n8n récupère les données Digiforma, prépare les analyses, puis l’application affiche
-            les plannings et les relances à partir d’un cache rapide.
+            Synchronisez directement les données Digiforma pour détecter les apprenants sans planning
+            et les émargements non signés.
           </p>
         </div>
 
@@ -55,99 +57,86 @@
         </div>
       </section>
 
-      <section id="cacheSection" class="panel-card mt-4">
+      <section id="syncSection" class="panel-card mt-4">
         <div class="sync-layout">
           <div>
-            <p class="eyebrow dark">Cache Digiforma</p>
+            <p class="eyebrow dark">Filtres de synchronisation</p>
 
-            <h3>Données préparées par n8n</h3>
+            <h3>Choisir le périmètre Digiforma</h3>
 
             <p>
-              Cliquez pour charger les dernières données synchronisées par le workflow n8n.
+              Ces filtres sont envoyés au backend pour limiter les appels Digiforma.
             </p>
           </div>
-          <div class="row g-3 mt-3">
-            <div class="col-12 col-md-3">
-              <label for="cacheYearFilter" class="form-label">Année affichée</label>
-              <select id="cacheYearFilter" class="form-select">
-                <option value="all">Toutes les années du cache</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026" selected>2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-              </select>
-            </div>
 
-            <div class="col-12 col-md-4">
-              <label for="cachePipelineFilter" class="form-label">État des sessions</label>
-              <select id="cachePipelineFilter" class="form-select">
-                <option value="all">Tous les états</option>
-                <option value="ongoing" selected>Sessions actives</option>
-                <option value="finished">Sessions terminées</option>
-                <option value="draft">Brouillons</option>
-                <option value="incomplete">Incomplètes</option>
-                <option value="crm_only">CRM uniquement</option>
-              </select>
-            </div>
-
-            <div class="col-12 col-md-3">
-              <label for="cacheModuleFilter" class="form-label">Type d’affichage</label>
-              <select id="cacheModuleFilter" class="form-select">
-                <option value="all" selected>Planning + relances</option>
-                <option value="planning_only">Planning uniquement</option>
-                <option value="reminders_only">Relances uniquement</option>
-              </select>
-            </div>
-
-            <div class="col-12 col-md-2 d-flex align-items-end">
-              <button id="applyCacheFiltersBtn" class="btn btn-outline-primary w-100">
-                Filtrer
-              </button>
-            </div>
-          </div>
           <div class="sync-actions">
-            <button id="loadCacheBtn" class="btn btn-primary btn-lg">
-              Charger le cache Digiforma
-            </button>
-
-            <button id="exportFullCacheBtn" class="btn btn-outline-secondary btn-lg" disabled>
-              Export JSON
+            <button id="syncBtn" class="btn btn-primary btn-lg">
+              Synchroniser Digiforma
             </button>
           </div>
         </div>
-
-        <div id="cacheAlert" class="alert d-none mt-4 mb-0" role="alert"></div>
 
         <div class="row g-3 mt-3">
           <div class="col-12 col-md-3">
-            <div class="stat-card">
-              <span>Dernière génération n8n</span>
-              <strong id="cacheGeneratedAt" class="fs-6">Non chargé</strong>
-            </div>
+            <label for="yearFilter" class="form-label">Année contrôlée</label>
+            <select id="yearFilter" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="pipelineFilter" class="form-label">État des sessions</label>
+            <select id="pipelineFilter" class="form-select">
+              <option value="ongoing" selected>Sessions actives</option>
+              <option value="finished">Sessions terminées</option>
+              <option value="draft">Brouillons</option>
+              <option value="incomplete">Incomplètes</option>
+              <option value="crm_only">CRM uniquement</option>
+              <option value="all">Tous les états</option>
+            </select>
           </div>
 
           <div class="col-12 col-md-3">
-            <div class="stat-card">
-              <span>Réception dans l’app</span>
-              <strong id="cacheReceivedAt" class="fs-6">Non chargé</strong>
-            </div>
+            <label for="maxSessionsFilter" class="form-label">Nombre max de sessions</label>
+            <select id="maxSessionsFilter" class="form-select">
+              <option value="5">5 sessions</option>
+              <option value="10" selected>10 sessions</option>
+              <option value="20">20 sessions</option>
+              <option value="50">50 sessions</option>
+            </select>
           </div>
 
-          <div class="col-12 col-md-3">
-            <div class="stat-card">
-              <span>Année</span>
-              <strong id="cacheYear">-</strong>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-3">
-            <div class="stat-card">
-              <span>État session</span>
-              <strong id="cachePipelineState" class="fs-6">-</strong>
+          <div class="col-12 col-md-2 d-flex align-items-end">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="onlyActiveFilter"
+                checked
+              />
+              <label class="form-check-label" for="onlyActiveFilter">
+                Filtrer l’état
+              </label>
             </div>
           </div>
         </div>
+
+        <div class="form-check mt-3">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="includeTodaySlotsFilter"
+          />
+          <label class="form-check-label" for="includeTodaySlotsFilter">
+            Inclure les créneaux d’aujourd’hui déjà terminés dans les relances
+          </label>
+        </div>
+
+        <div id="syncAlert" class="alert d-none mt-4 mb-0" role="alert"></div>
       </section>
 
       <section id="planningSection" class="stats-grid">
@@ -178,13 +167,17 @@
             <p class="eyebrow dark">Résultats planning</p>
             <h3>Analyse des apprenants</h3>
             <p>
-              Données issues du cache préparé par n8n.
+              Données synchronisées directement depuis Digiforma.
             </p>
           </div>
 
           <div class="filters-group">
-            <input type="search" id="planningSearchInput" class="form-control"
-              placeholder="Rechercher apprenant, email, session..." />
+            <input
+              type="search"
+              id="planningSearchInput"
+              class="form-control"
+              placeholder="Rechercher apprenant, email, session..."
+            />
 
             <select id="planningStatusFilter" class="form-select">
               <option value="all">Tous les statuts</option>
@@ -216,7 +209,7 @@
             <tbody id="planningBody">
               <tr>
                 <td colspan="7" class="empty-state">
-                  Aucun cache chargé pour le moment.
+                  Aucune synchronisation effectuée pour le moment.
                 </td>
               </tr>
             </tbody>
@@ -232,16 +225,22 @@
             <h3>Apprenants avec émargements non signés</h3>
 
             <p>
-              Liste calculée par n8n à partir des créneaux passés et signatures Digiforma.
+              Liste calculée à partir des créneaux passés et signatures Digiforma.
             </p>
           </div>
 
           <div class="sync-actions">
+            <button id="loadRemindersBtn" class="btn btn-warning btn-lg">
+              Charger uniquement les relances
+            </button>
+
             <button id="exportRemindersBtn" class="btn btn-outline-success btn-lg" disabled>
               Exporter les relances
             </button>
           </div>
         </div>
+
+        <div id="remindersAlert" class="alert d-none mt-3" role="alert"></div>
 
         <div class="stats-grid mt-4">
           <article class="stat-card danger">
@@ -269,8 +268,12 @@
           <div></div>
 
           <div class="filters-group">
-            <input type="search" id="remindersSearchInput" class="form-control"
-              placeholder="Rechercher relance, apprenant, session..." />
+            <input
+              type="search"
+              id="remindersSearchInput"
+              class="form-control"
+              placeholder="Rechercher relance, apprenant, session..."
+            />
 
             <select id="remindersPriorityFilter" class="form-select">
               <option value="all">Toutes les priorités</option>
@@ -280,8 +283,6 @@
             </select>
           </div>
         </div>
-
-        <div id="remindersAlert" class="alert d-none mt-3" role="alert"></div>
 
         <div class="table-responsive mt-3">
           <table class="table table-hover align-middle">
@@ -300,7 +301,7 @@
             <tbody id="remindersBody">
               <tr>
                 <td colspan="7" class="empty-state">
-                  Aucun cache chargé pour le moment.
+                  Aucune relance chargée pour le moment.
                 </td>
               </tr>
             </tbody>
@@ -311,30 +312,22 @@
   </div>
 
   <script>
-    // let fullCache = null;
-    // let planningResults = [];
-    // let signatureReminders = [];
-    let fullCache = null;
-
-let rawPlanningResults = [];
-let rawSignatureReminders = [];
-
-let planningResults = [];
-let signatureReminders = [];
+    let planningResults = [];
+    let signatureReminders = [];
 
     const elements = {
       appName: document.getElementById('appName'),
       appVersion: document.getElementById('appVersion'),
       currentDate: document.getElementById('currentDate'),
 
-      loadCacheBtn: document.getElementById('loadCacheBtn'),
-      exportFullCacheBtn: document.getElementById('exportFullCacheBtn'),
-      cacheAlert: document.getElementById('cacheAlert'),
+      yearFilter: document.getElementById('yearFilter'),
+      pipelineFilter: document.getElementById('pipelineFilter'),
+      maxSessionsFilter: document.getElementById('maxSessionsFilter'),
+      onlyActiveFilter: document.getElementById('onlyActiveFilter'),
+      includeTodaySlotsFilter: document.getElementById('includeTodaySlotsFilter'),
 
-      cacheGeneratedAt: document.getElementById('cacheGeneratedAt'),
-      cacheReceivedAt: document.getElementById('cacheReceivedAt'),
-      cacheYear: document.getElementById('cacheYear'),
-      cachePipelineState: document.getElementById('cachePipelineState'),
+      syncBtn: document.getElementById('syncBtn'),
+      syncAlert: document.getElementById('syncAlert'),
 
       totalLearners: document.getElementById('totalLearners'),
       totalOk: document.getElementById('totalOk'),
@@ -346,6 +339,10 @@ let signatureReminders = [];
       exportPlanningBtn: document.getElementById('exportPlanningBtn'),
       planningBody: document.getElementById('planningBody'),
 
+      loadRemindersBtn: document.getElementById('loadRemindersBtn'),
+      exportRemindersBtn: document.getElementById('exportRemindersBtn'),
+      remindersAlert: document.getElementById('remindersAlert'),
+
       totalReminders: document.getElementById('totalReminders'),
       totalCriticalReminders: document.getElementById('totalCriticalReminders'),
       totalHighReminders: document.getElementById('totalHighReminders'),
@@ -353,21 +350,13 @@ let signatureReminders = [];
 
       remindersSearchInput: document.getElementById('remindersSearchInput'),
       remindersPriorityFilter: document.getElementById('remindersPriorityFilter'),
-      exportRemindersBtn: document.getElementById('exportRemindersBtn'),
-      remindersAlert: document.getElementById('remindersAlert'),
-      remindersBody: document.getElementById('remindersBody'),
-      
-      cacheYearFilter: document.getElementById('cacheYearFilter'),
-      cachePipelineFilter: document.getElementById('cachePipelineFilter'),
-      cacheModuleFilter: document.getElementById('cacheModuleFilter'),
-      applyCacheFiltersBtn: document.getElementById('applyCacheFiltersBtn'),
+      remindersBody: document.getElementById('remindersBody')
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
       setCurrentDate();
       bindEvents();
       await loadConfig();
-      await loadCacheFromServer();
     });
 
     async function loadConfig() {
@@ -388,220 +377,208 @@ let signatureReminders = [];
     }
 
     function bindEvents() {
-      elements.loadCacheBtn.addEventListener('click', loadCacheFromServer);
-      elements.exportFullCacheBtn.addEventListener('click', exportFullCache);
+      elements.syncBtn.addEventListener('click', syncDigiforma);
+      elements.loadRemindersBtn.addEventListener('click', () => loadSignatureReminders(false));
+
+      elements.exportPlanningBtn.addEventListener('click', exportPlanningAnomalies);
+      elements.exportRemindersBtn.addEventListener('click', exportSignatureReminders);
 
       elements.planningSearchInput.addEventListener('input', applyPlanningFilters);
       elements.planningStatusFilter.addEventListener('change', applyPlanningFilters);
-      elements.exportPlanningBtn.addEventListener('click', exportPlanningAnomalies);
 
       elements.remindersSearchInput.addEventListener('input', applyReminderFilters);
       elements.remindersPriorityFilter.addEventListener('change', applyReminderFilters);
-      elements.exportRemindersBtn.addEventListener('click', exportSignatureReminders);
 
-      elements.applyCacheFiltersBtn.addEventListener('click', applyGlobalCacheFilters);
-      elements.cacheYearFilter.addEventListener('change', applyGlobalCacheFilters);
-      elements.cachePipelineFilter.addEventListener('change', applyGlobalCacheFilters);
-      elements.cacheModuleFilter.addEventListener('change', applyGlobalCacheFilters);
+      elements.pipelineFilter.addEventListener('change', () => {
+        if (elements.pipelineFilter.value === 'all') {
+          elements.onlyActiveFilter.checked = false;
+          elements.onlyActiveFilter.disabled = true;
+        } else {
+          elements.onlyActiveFilter.checked = true;
+          elements.onlyActiveFilter.disabled = false;
+        }
+      });
     }
 
-    async function loadCacheFromServer() {
+    async function syncDigiforma() {
       try {
-        setCacheLoadingState(true);
-        hideCacheAlert();
+        setSyncLoadingState(true);
+        hideSyncAlert();
+        hideRemindersAlert();
 
-        const response = await fetch('/api/cache/digiforma');
-        const payload = await response.json();
+        showSyncAlert(
+          'info',
+          'Synchronisation Digiforma en cours : contrôle planning puis analyse des relances...'
+        );
 
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Aucun cache disponible.');
-        }
+        await loadPlanning();
 
-        fullCache = payload.data;
-
-        rawPlanningResults = Array.isArray(fullCache.planning?.results)
-          ? fullCache.planning.results
-          : [];
-
-        rawSignatureReminders = Array.isArray(fullCache.reminders?.results)
-          ? fullCache.reminders.results
-          : [];
-
-        renderCacheMeta(fullCache);
-        applyGlobalCacheFilters();
-
-        elements.exportFullCacheBtn.disabled = false;
-        elements.exportPlanningBtn.disabled = planningResults.length === 0;
-        elements.exportRemindersBtn.disabled = signatureReminders.length === 0;
-
-        showCacheAlert(
+        showSyncAlert(
           'success',
-          `Cache chargé. ${planningResults.length} apprenant(s), ${signatureReminders.length} relance(s) détectée(s).`
+          `Planning synchronisé. ${planningResults.length} apprenant(s) analysé(s). Chargement des relances en cours...`
+        );
+
+        await loadSignatureReminders(true);
+
+        showSyncAlert(
+          'success',
+          `Synchronisation terminée. ${planningResults.length} apprenant(s), ${signatureReminders.length} relance(s) détectée(s).`
         );
       } catch (error) {
-        renderEmptyPlanningState('Aucun cache chargé.');
-        renderEmptyRemindersState('Aucun cache chargé.');
-        showCacheAlert('warning', error.message || 'Impossible de charger le cache.');
+        showSyncAlert(
+          'danger',
+          error.message || 'Erreur pendant la synchronisation Digiforma.'
+        );
       } finally {
-        setCacheLoadingState(false);
+        setSyncLoadingState(false);
       }
     }
-    function applyGlobalCacheFilters() {
-  if (!fullCache) {
-    showCacheAlert('warning', 'Aucun cache chargé pour appliquer les filtres.');
-    return;
-  }
 
-  const selectedYear = elements.cacheYearFilter.value;
-  const selectedPipeline = elements.cachePipelineFilter.value;
-  const selectedModule = elements.cacheModuleFilter.value;
+    async function loadPlanning() {
+      const params = buildCommonParams();
 
-  planningResults = rawPlanningResults.filter((row) => {
-    return matchesYear(row, selectedYear) && matchesPipeline(row, selectedPipeline);
-  });
-
-  signatureReminders = rawSignatureReminders.filter((row) => {
-    return matchesYear(row, selectedYear) && matchesPipeline(row, selectedPipeline);
-  });
-
-  renderPlanningStatsFromRows(planningResults);
-  renderReminderStatsFromRows(signatureReminders);
-
-  if (selectedModule === 'reminders_only') {
-    renderPlanningRows([]);
-  } else {
-    applyPlanningFilters();
-  }
-
-  if (selectedModule === 'planning_only') {
-    renderSignatureReminders([]);
-  } else {
-    applyReminderFilters();
-  }
-
-  elements.exportPlanningBtn.disabled = planningResults.length === 0;
-  elements.exportRemindersBtn.disabled = signatureReminders.length === 0;
-
-  showCacheAlert(
-    'success',
-    `Filtre appliqué : ${planningResults.length} apprenant(s), ${signatureReminders.length} relance(s).`
-  );
-}
-
-function matchesYear(row, selectedYear) {
-  if (!selectedYear || selectedYear === 'all') {
-    return true;
-  }
-
-  const year = Number(selectedYear);
-
-  const startDate = parseSafeDate(row.sessionStartDate || row.slotDate);
-  const endDate = parseSafeDate(row.sessionEndDate || row.slotDate);
-
-  if (!startDate && !endDate) {
-    return false;
-  }
-
-  const yearStart = new Date(`${year}-01-01T00:00:00`);
-  const yearEnd = new Date(`${year}-12-31T23:59:59`);
-
-  if (startDate && endDate) {
-    return startDate <= yearEnd && endDate >= yearStart;
-  }
-
-  if (startDate && !endDate) {
-    return startDate >= yearStart && startDate <= yearEnd;
-  }
-
-  if (!startDate && endDate) {
-    return endDate >= yearStart && endDate <= yearEnd;
-  }
-
-  return false;
-}
-
-function matchesPipeline(row, selectedPipeline) {
-  if (!selectedPipeline || selectedPipeline === 'all') {
-    return true;
-  }
-
-  return String(row.sessionStatus || '').toLowerCase() ===
-    String(selectedPipeline || '').toLowerCase();
-}
-
-function parseSafeDate(value) {
-  if (!value) {
-    return null;
-  }
-
-  const directDate = new Date(value);
-
-  if (!Number.isNaN(directDate.getTime())) {
-    return directDate;
-  }
-
-  const fallbackDate = new Date(`${value}T00:00:00`);
-
-  if (!Number.isNaN(fallbackDate.getTime())) {
-    return fallbackDate;
-  }
-
-  return null;
-}
-
-function renderPlanningStatsFromRows(rows) {
-  elements.totalLearners.textContent = rows.length;
-
-  elements.totalOk.textContent = rows.filter((row) => {
-    return getStatusCode(row) === 'ok';
-  }).length;
-
-  elements.totalMissing.textContent = rows.filter((row) => {
-    return getStatusCode(row) === 'missing';
-  }).length;
-
-  elements.totalWarning.textContent = rows.filter((row) => {
-    return getStatusCode(row) === 'warning';
-  }).length;
-}
-
-function renderReminderStatsFromRows(rows) {
-  elements.totalReminders.textContent = rows.length;
-
-  elements.totalCriticalReminders.textContent = rows.filter((row) => {
-    return row.priority === 'critical';
-  }).length;
-
-  elements.totalHighReminders.textContent = rows.filter((row) => {
-    return row.priority === 'high';
-  }).length;
-
-  elements.totalNormalReminders.textContent = rows.filter((row) => {
-    return row.priority === 'normal';
-  }).length;
-}
-    function setCacheLoadingState(isLoading) {
-      elements.loadCacheBtn.disabled = isLoading;
-      elements.loadCacheBtn.textContent = isLoading
-        ? 'Chargement du cache...'
-        : 'Charger le cache Digiforma';
-    }
-
-    function renderCacheMeta(cache) {
-      elements.cacheGeneratedAt.textContent = formatDateTime(cache.generatedAt);
-      elements.cacheReceivedAt.textContent = formatDateTime(cache.receivedAt);
-      elements.cacheYear.textContent = cache.filters?.targetYear || '-';
-      elements.cachePipelineState.textContent = getPipelineLabel(
-        cache.filters?.pipelineState,
-        cache.filters?.onlyActive
+      const payload = await fetchJSONWithTimeout(
+        `/api/planning/sync?${params.toString()}`,
+        90000
       );
+
+      if (!payload.success) {
+        throw new Error(payload.message || 'Erreur pendant le contrôle planning.');
+      }
+
+      const data = payload.data;
+
+      planningResults = Array.isArray(data.results)
+        ? data.results
+        : [];
+
+      renderPlanningStats(data);
+      applyPlanningFilters();
+
+      elements.exportPlanningBtn.disabled = planningResults.length === 0;
     }
 
-    function renderPlanningStats(planning) {
-      elements.totalLearners.textContent = planning.totalLearners || 0;
-      elements.totalOk.textContent = planning.totalOk || 0;
-      elements.totalMissing.textContent = planning.totalMissing || 0;
-      elements.totalWarning.textContent = planning.totalWarning || 0;
+    async function loadSignatureReminders(isAutomatic = false) {
+      try {
+        setRemindersLoadingState(true);
+
+        if (!isAutomatic) {
+          hideRemindersAlert();
+          showRemindersAlert('info', 'Chargement des relances en cours...');
+        }
+
+        const params = buildCommonParams();
+
+        params.set(
+          'includeTodaySlots',
+          elements.includeTodaySlotsFilter.checked ? 'true' : 'false'
+        );
+
+        const payload = await fetchJSONWithTimeout(
+          `/api/reminders/signatures?${params.toString()}`,
+          90000
+        );
+
+        if (!payload.success) {
+          throw new Error(payload.message || 'Erreur pendant le chargement des relances.');
+        }
+
+        const data = payload.data;
+
+        signatureReminders = Array.isArray(data.reminders)
+          ? data.reminders
+          : [];
+
+        renderReminderStats(data);
+        applyReminderFilters();
+
+        elements.exportRemindersBtn.disabled = signatureReminders.length === 0;
+
+        showRemindersAlert(
+          'success',
+          `${signatureReminders.length} relance(s) détectée(s).`
+        );
+      } catch (error) {
+        renderEmptyRemindersState('Impossible de charger les relances.');
+
+        showRemindersAlert(
+          'danger',
+          error.message || 'Erreur pendant le chargement des relances.'
+        );
+
+        if (isAutomatic) {
+          showSyncAlert(
+            'warning',
+            'Le planning a été synchronisé, mais les relances n’ont pas pu être chargées.'
+          );
+        }
+      } finally {
+        setRemindersLoadingState(false);
+      }
+    }
+
+    function buildCommonParams() {
+      return new URLSearchParams({
+        year: elements.yearFilter.value,
+        pipelineState: elements.pipelineFilter.value,
+        onlyActive: elements.onlyActiveFilter.checked ? 'true' : 'false',
+        maxSessionsDetails: elements.maxSessionsFilter.value
+      });
+    }
+
+    async function fetchJSONWithTimeout(url, timeout = 90000) {
+      const controller = new AbortController();
+
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, timeout);
+
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.message || `Erreur HTTP ${response.status}`);
+        }
+
+        return payload;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error(
+            'La requête a pris trop de temps. Réduis le nombre max de sessions à 5 ou 10.'
+          );
+        }
+
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    function setSyncLoadingState(isLoading) {
+      elements.syncBtn.disabled = isLoading;
+
+      elements.syncBtn.textContent = isLoading
+        ? 'Synchronisation en cours...'
+        : 'Synchroniser Digiforma';
+    }
+
+    function setRemindersLoadingState(isLoading) {
+      elements.loadRemindersBtn.disabled = isLoading;
+
+      elements.loadRemindersBtn.textContent = isLoading
+        ? 'Chargement des relances...'
+        : 'Charger uniquement les relances';
+    }
+
+    function renderPlanningStats(data) {
+      elements.totalLearners.textContent = data.totalLearners || 0;
+      elements.totalOk.textContent = data.totalOk || 0;
+      elements.totalMissing.textContent = data.totalMissing || 0;
+      elements.totalWarning.textContent = data.totalWarning || 0;
     }
 
     function applyPlanningFilters() {
@@ -610,7 +587,6 @@ function renderReminderStatsFromRows(rows) {
 
       const rows = planningResults.filter((row) => {
         const rowStatus = getStatusCode(row);
-
         const matchesStatus = status === 'all' || rowStatus === status;
 
         const searchableContent = [
@@ -620,9 +596,7 @@ function renderReminderStatsFromRows(rows) {
           row.sessionStatus,
           row.status?.label,
           row.status?.action
-        ]
-          .join(' ')
-          .toLowerCase();
+        ].join(' ').toLowerCase();
 
         const matchesSearch = !search || searchableContent.includes(search);
 
@@ -647,37 +621,23 @@ function renderReminderStatsFromRows(rows) {
           <tr>
             <td>
               <strong>${escapeHTML(row.fullName || 'Non renseigné')}</strong>
-              <div class="text-muted small">
-                ID : ${escapeHTML(row.learnerId || 'N/A')}
-              </div>
+              <div class="text-muted small">ID : ${escapeHTML(row.learnerId || 'N/A')}</div>
             </td>
-
             <td>${escapeHTML(row.email || 'Non renseigné')}</td>
-
             <td>
               <strong>${escapeHTML(row.sessionName || 'Session non renseignée')}</strong>
-              <div class="text-muted small">
-                ${escapeHTML(row.sessionStatus || '')}
-              </div>
+              <div class="text-muted small">${escapeHTML(row.sessionStatus || '')}</div>
             </td>
-
             <td>
               <div>${formatDate(row.sessionStartDate)}</div>
-              <div class="text-muted small">
-                au ${formatDate(row.sessionEndDate)}
-              </div>
+              <div class="text-muted small">au ${formatDate(row.sessionEndDate)}</div>
             </td>
-
-            <td>
-              <strong>${Number(row.slotsCount || 0)}</strong>
-            </td>
-
+            <td><strong>${Number(row.slotsCount || 0)}</strong></td>
             <td>
               <span class="badge-status ${getStatusClass(statusCode)}">
                 ${escapeHTML(statusLabel)}
               </span>
             </td>
-
             <td>${escapeHTML(action)}</td>
           </tr>
         `;
@@ -687,18 +647,16 @@ function renderReminderStatsFromRows(rows) {
     function renderEmptyPlanningState(message) {
       elements.planningBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">
-            ${escapeHTML(message)}
-          </td>
+          <td colspan="7" class="empty-state">${escapeHTML(message)}</td>
         </tr>
       `;
     }
 
-    function renderReminderStats(reminders) {
-      elements.totalReminders.textContent = reminders.totalReminders || 0;
-      elements.totalCriticalReminders.textContent = reminders.totalCritical || 0;
-      elements.totalHighReminders.textContent = reminders.totalHigh || 0;
-      elements.totalNormalReminders.textContent = reminders.totalNormal || 0;
+    function renderReminderStats(data) {
+      elements.totalReminders.textContent = data.totalReminders || 0;
+      elements.totalCriticalReminders.textContent = data.totalCritical || 0;
+      elements.totalHighReminders.textContent = data.totalHigh || 0;
+      elements.totalNormalReminders.textContent = data.totalNormal || 0;
     }
 
     function applyReminderFilters() {
@@ -715,9 +673,7 @@ function renderReminderStatsFromRows(rows) {
           reminder.sessionName,
           reminder.subsessionName,
           reminder.priority
-        ]
-          .join(' ')
-          .toLowerCase();
+        ].join(' ').toLowerCase();
 
         const matchesSearch = !search || searchableContent.includes(search);
 
@@ -740,40 +696,28 @@ function renderReminderStatsFromRows(rows) {
           <tr>
             <td>
               <strong>${escapeHTML(reminder.fullName || 'Non renseigné')}</strong>
-              <div class="text-muted small">
-                ${escapeHTML(reminder.learnerId || '')}
-              </div>
+              <div class="text-muted small">${escapeHTML(reminder.learnerId || '')}</div>
             </td>
-
             <td>
               <div>${escapeHTML(reminder.email || 'Email non renseigné')}</div>
               <div class="text-muted small">${escapeHTML(reminder.phone || '')}</div>
             </td>
-
             <td>
               <strong>${escapeHTML(reminder.sessionName || 'Session non renseignée')}</strong>
-              <div class="text-muted small">
-                ${escapeHTML(reminder.subsessionName || reminder.sessionCode || '')}
-              </div>
+              <div class="text-muted small">${escapeHTML(reminder.subsessionName || reminder.sessionCode || '')}</div>
             </td>
-
             <td>
               <div>${formatDate(reminder.slotDate)}</div>
               <div class="text-muted small">
                 ${escapeHTML(reminder.startTime || '')} - ${escapeHTML(reminder.endTime || '')}
               </div>
             </td>
-
-            <td>
-              <strong>${Number(reminder.daysLate || 0)} j</strong>
-            </td>
-
+            <td><strong>${Number(reminder.daysLate || 0)} j</strong></td>
             <td>
               <span class="badge-status ${getReminderPriorityClass(reminder.priority)}">
                 ${getReminderPriorityLabel(reminder.priority)}
               </span>
             </td>
-
             <td>
               <div class="d-flex flex-wrap gap-2">
                 <button
@@ -827,9 +771,7 @@ function renderReminderStatsFromRows(rows) {
     function renderEmptyRemindersState(message) {
       elements.remindersBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">
-            ${escapeHTML(message)}
-          </td>
+          <td colspan="7" class="empty-state">${escapeHTML(message)}</td>
         </tr>
       `;
     }
@@ -919,36 +861,11 @@ function renderReminderStatsFromRows(rows) {
       downloadCSV(headers, lines, `australe-relances-emargements-${getExportDate()}.csv`);
     }
 
-    function exportFullCache() {
-      if (!fullCache) {
-        showCacheAlert('info', 'Aucun cache à exporter.');
-        return;
-      }
-
-      const blob = new Blob(
-        [JSON.stringify(fullCache, null, 2)],
-        {
-          type: 'application/json;charset=utf-8;'
-        }
-      );
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-
-      link.href = url;
-      link.download = `australe-cache-digiforma-${getExportDate()}.json`;
-      link.click();
-
-      URL.revokeObjectURL(url);
-    }
-
     function downloadCSV(headers, lines, filename) {
       const csvContent = [
         headers,
         ...lines
-      ]
-        .map((line) => line.map(escapeCSVValue).join(';'))
-        .join('\n');
+      ].map((line) => line.map(escapeCSVValue).join(';')).join('\n');
 
       const blob = new Blob([csvContent], {
         type: 'text/csv;charset=utf-8;'
@@ -964,21 +881,26 @@ function renderReminderStatsFromRows(rows) {
       URL.revokeObjectURL(url);
     }
 
-    function showCacheAlert(type, message) {
-      elements.cacheAlert.className = `alert alert-${type} mt-4 mb-0`;
-      elements.cacheAlert.textContent = message;
-      elements.cacheAlert.classList.remove('d-none');
+    function showSyncAlert(type, message) {
+      elements.syncAlert.className = `alert alert-${type} mt-4 mb-0`;
+      elements.syncAlert.textContent = message;
+      elements.syncAlert.classList.remove('d-none');
     }
 
-    function hideCacheAlert() {
-      elements.cacheAlert.classList.add('d-none');
-      elements.cacheAlert.textContent = '';
+    function hideSyncAlert() {
+      elements.syncAlert.classList.add('d-none');
+      elements.syncAlert.textContent = '';
     }
 
     function showRemindersAlert(type, message) {
       elements.remindersAlert.className = `alert alert-${type} mt-3`;
       elements.remindersAlert.textContent = message;
       elements.remindersAlert.classList.remove('d-none');
+    }
+
+    function hideRemindersAlert() {
+      elements.remindersAlert.classList.add('d-none');
+      elements.remindersAlert.textContent = '';
     }
 
     function getStatusCode(row) {
@@ -1025,22 +947,6 @@ function renderReminderStatsFromRows(rows) {
       return labels[priority] || 'À vérifier';
     }
 
-    function getPipelineLabel(pipelineState, onlyActive) {
-      if (!onlyActive || pipelineState === 'all') {
-        return 'Tous les états';
-      }
-
-      const labels = {
-        ongoing: 'Sessions actives',
-        finished: 'Sessions terminées',
-        draft: 'Brouillons',
-        incomplete: 'Sessions incomplètes',
-        crm_only: 'CRM uniquement'
-      };
-
-      return labels[pipelineState] || pipelineState || '-';
-    }
-
     function setCurrentDate() {
       const formatter = new Intl.DateTimeFormat('fr-FR', {
         day: '2-digit',
@@ -1069,23 +975,6 @@ function renderReminderStatsFromRows(rows) {
       }
 
       return new Intl.DateTimeFormat('fr-FR').format(date);
-    }
-
-    function formatDateTime(value) {
-      if (!value) {
-        return 'Non renseigné';
-      }
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        return value;
-      }
-
-      return new Intl.DateTimeFormat('fr-FR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      }).format(date);
     }
 
     function getExportDate() {
@@ -1122,5 +1011,4 @@ function renderReminderStatsFromRows(rows) {
     }
   </script>
 </body>
-
 </html>

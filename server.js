@@ -4,21 +4,19 @@ require('dotenv').config();
 
 const planningRoutes = require('./src/routes/planning.routes');
 const remindersRoutes = require('./src/routes/reminders.routes');
-const cacheRoutes = require('./src/routes/cache.routes');
 
 const { app: appConfig } = require('./src/config/env');
 
 const app = express();
 
 app.use(express.json({
-  limit: '50mb'
+  limit: '20mb'
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/planning', planningRoutes);
 app.use('/api/reminders', remindersRoutes);
-app.use('/api/cache', cacheRoutes);
 
 app.get('/api/config', (req, res) => {
   res.json({
